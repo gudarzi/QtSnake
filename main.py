@@ -22,18 +22,18 @@ def get_resource_path(path):
 
 
 class Food(QGraphicsRectItem):
-    def __init__(self, x, y, w, h):
-        super().__init__(x - w / 2, y - h / 2, w, h)
-        self.width = w
-        self.height = h
-        self.setBrush(QBrush(QColor("red")))
+    def __init__(self, x, y):
+        self.width = 15
+        self.height = 15
+        super().__init__(x - self.width / 2, y - self.height / 2, self.width, self.height)
+        self.setBrush(QBrush(QColor("orange")))
 
 
 class SnakeCube(QGraphicsRectItem):
-    def __init__(self, x, y, w, h):
-        super().__init__(x - w / 2, y - h / 2, w, h)
-        self.width = w
-        self.height = h
+    def __init__(self, x, y):
+        self.width = 5
+        self.height = 5
+        super().__init__(x - self.width / 2, y - self.height / 2, self.width, self.height)
         self.setBrush(QBrush(QColor("green")))
 
     def grow(self):
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self.graphicsView.setAlignment(QtCore.Qt.AlignCenter)
         self.scene.setSceneRect(-400, -200, 800, 400)
 
-        self.snake = SnakeCube(0, 0, 20, 20)
+        self.snake = SnakeCube(0, 0)
         self.scene.addItem(self.snake)
 
         self.scene.keyPressEvent = self.scene_key_press
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
     def create_food(self):
         x = self.scene.width() * (0.1 + 0.8 * (random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random()) - 0.5)
-        self.food = Food(x, y, 20, 20)
+        self.food = Food(x, y)
         self.scene.addItem(self.food)
 
     def check_collision(self):
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         msg.exec()
         self.scene.clear()
         self.create_food()
-        self.snake = SnakeCube(0, 0, 20, 20)
+        self.snake = SnakeCube(0, 0)
         self.scene.addItem(self.snake)
         self.score = 0
 
