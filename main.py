@@ -1,3 +1,4 @@
+from sqlite3 import TimeFromTicks
 import sys, os
 import random
 from PySide6.QtGui import QBrush, QColor
@@ -108,10 +109,10 @@ class MainWindow(QMainWindow):
         self.scene.setSceneRect(-400, -200, 800, 400)
 
         self.snake = Snake()
-
+        
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
-        self.timer.start(1000)
+        self.timer.start(100)
 
         self.scene.keyPressEvent = self.scene_key_press
 
@@ -128,12 +129,15 @@ class MainWindow(QMainWindow):
             self.snake.change_direction((0, -1))
         elif event.key() == QtCore.Qt.Key_Down:
             self.snake.change_direction((0, 1))
-        # self.tick()
+        self.tick()
 
     def tick(self):
         self.scene.clear()
         if self.food != 0:
-            self.scene.addItem(Food(self.food.x(), self.food.y()))
+            new_food = Food(0,0)
+            new_food.setX(self.food.x())
+            new_food.setY(self.food.y())
+            self.scene.addItem(new_food)
         self.snake.move()
         self.check_collision()
         for sc in self.snake.cube_list:
@@ -145,7 +149,8 @@ class MainWindow(QMainWindow):
         x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
         self.food = Food(x, y)
-        print(f"new food: {x}, {y}")
+        self.food.setX(x)
+        self.food.setY(y)
 
     def check_collision(self):
         head = self.snake.cube_list[0]
@@ -164,8 +169,6 @@ class MainWindow(QMainWindow):
             <= head.y()
             <= self.food.y() + self.food.height / 2
         ):
-            print(f"head: {head.x()}, {head.y()}")
-            print(f"food: {self.food.x()}, {self.food.y()}")
             self.snake.score += 1
             self.food = 0
             items_to_remove = []
@@ -175,7 +178,6 @@ class MainWindow(QMainWindow):
             for item in items_to_remove:
                 self.scene.removeItem(item)
             self.create_food()
-            self.scene.addItem(Food((self.food.x(), self.food.y())))
             self.snake.grow()
 
     def game_over(self):
