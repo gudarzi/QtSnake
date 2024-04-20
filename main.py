@@ -52,17 +52,17 @@ class Snake:
         return random.choice(directions)
 
     def move(self):
-        print("\n")
-        for sc in self.cube_list:
-            print(f"{sc.x()},{sc.y()},{self.direction[0]},{self.direction[1]}")
-        print("\n")
-        cln=len(self.cube_list)
-        if cln>1:
+        cln = len(self.cube_list)
+        if cln > 1:
             for i in range(cln - 1, 0, -1):
                 self.cube_list[i].setX(self.cube_list[i - 1].x())
                 self.cube_list[i].setY(self.cube_list[i - 1].y())
-        self.cube_list[0].setX(self.cube_list[0].x()+self.direction[0]*self.cube_list[0].width)
-        self.cube_list[0].setY(self.cube_list[0].y()+self.direction[1]*self.cube_list[0].height)
+        self.cube_list[0].setX(
+            self.cube_list[0].x() + self.direction[0] * self.cube_list[0].width
+        )
+        self.cube_list[0].setY(
+            self.cube_list[0].y() + self.direction[1] * self.cube_list[0].height
+        )
 
     def grow(self):
         last_cube = self.cube_list[-1]
@@ -75,7 +75,7 @@ class Snake:
 
     def change_direction(self, direction):
         dx, dy = direction
-        if (dx, dy)!= (-self.direction[0], -self.direction[1]):
+        if (dx, dy) != (-self.direction[0], -self.direction[1]):
             self.direction = (dx, dy)
 
 
@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
         self.snake = Snake()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_snake)
+        self.timer.timeout.connect(self.tick)
         self.timer.start(1000)
 
         self.scene.keyPressEvent = self.scene_key_press
@@ -128,21 +128,24 @@ class MainWindow(QMainWindow):
             self.snake.change_direction((0, -1))
         elif event.key() == QtCore.Qt.Key_Down:
             self.snake.change_direction((0, 1))
-        self.update_snake()
+        # self.tick()
 
-    def update_snake(self):
-        for sc in self.snake.cube_list:
-            self.scene.removeItem(sc)
+    def tick(self):
+        self.scene.clear()
+        if self.food != 0:
+            self.scene.addItem(Food(self.food.x(), self.food.y()))
         self.snake.move()
         self.check_collision()
         for sc in self.snake.cube_list:
-            self.scene.addItem(sc)
+            new_sc = SnakeCube(sc.x(), sc.y())
+            self.scene.addItem(new_sc)
 
     def create_food(self):
+        self.food = 0
         x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
         self.food = Food(x, y)
-        self.scene.addItem(self.food)
+        print(f"new food: {x}, {y}")
 
     def check_collision(self):
         head = self.snake.cube_list[0]
@@ -153,11 +156,27 @@ class MainWindow(QMainWindow):
             or abs(head.y()) > self.graphicsView.viewport().height() / 2
         ):
             self.game_over()
-        elif head.collidesWithItem(self.food):
-            self.scene.removeItem(self.food)
+        elif (
+            self.food.x() - self.food.width / 2
+            <= head.x()
+            <= self.food.x() + self.food.width / 2
+            and self.food.y() - self.food.height / 2
+            <= head.y()
+            <= self.food.y() + self.food.height / 2
+        ):
+            print(f"head: {head.x()}, {head.y()}")
+            print(f"food: {self.food.x()}, {self.food.y()}")
             self.snake.score += 1
-            self.snake.grow()
+            self.food = 0
+            items_to_remove = []
+            for item in self.scene.items():
+                if isinstance(item, Food):
+                    items_to_remove.append(item)
+            for item in items_to_remove:
+                self.scene.removeItem(item)
             self.create_food()
+            self.scene.addItem(Food((self.food.x(), self.food.y())))
+            self.snake.grow()
 
     def game_over(self):
         msg = QMessageBox()
