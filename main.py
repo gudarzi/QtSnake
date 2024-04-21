@@ -1,4 +1,3 @@
-from sqlite3 import TimeFromTicks
 import sys, os
 import random
 from PySide6.QtGui import QBrush, QColor
