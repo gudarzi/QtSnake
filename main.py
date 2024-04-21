@@ -23,22 +23,18 @@ def get_resource_path(path):
 
 
 class Food(QGraphicsRectItem):
-    def __init__(self, x, y):
+    def __init__(self):
         self.width = 15
         self.height = 15
-        super().__init__(
-            x - self.width / 2, y - self.height / 2, self.width, self.height
-        )
+        super().__init__(0, 0, self.width, self.height) # x, y are set later
         self.setBrush(QBrush(QColor("orange")))
 
 
 class SnakeCube(QGraphicsRectItem):
-    def __init__(self, x, y):
+    def __init__(self):
         self.width = 5
         self.height = 5
-        super().__init__(
-            x - self.width / 2, y - self.height / 2, self.width, self.height
-        )
+        super().__init__(0, 0, self.width, self.height) # x, y are set later
         self.setBrush(QBrush(QColor("green")))
 
 
@@ -46,7 +42,8 @@ class Snake:
     def __init__(self):
         self.score = 0
         self.direction = self.get_random_direction()
-        self.cube_list = [SnakeCube(0, 0) for i in range(2)]
+        self.cube_list = [SnakeCube() for i in range(2)]
+        self.move()
 
     def get_random_direction(self):
         directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
@@ -54,23 +51,14 @@ class Snake:
 
     def move(self):
         cln = len(self.cube_list)
-        if cln > 1:
-            for i in range(cln - 1, 0, -1):
-                self.cube_list[i].setX(self.cube_list[i - 1].x())
-                self.cube_list[i].setY(self.cube_list[i - 1].y())
-        self.cube_list[0].setX(
-            self.cube_list[0].x() + self.direction[0] * self.cube_list[0].width
-        )
-        self.cube_list[0].setY(
-            self.cube_list[0].y() + self.direction[1] * self.cube_list[0].height
-        )
+        for i in range(cln - 1, 0, -1):
+            self.cube_list[i].setX(self.cube_list[i - 1].x())
+            self.cube_list[i].setY(self.cube_list[i - 1].y())
+        self.cube_list[0].setX(self.cube_list[0].x() + self.direction[0] * self.cube_list[0].width)
+        self.cube_list[0].setY(self.cube_list[0].y() + self.direction[1] * self.cube_list[0].height)
 
     def grow(self):
-        last_cube = self.cube_list[-1]
-        new_x = last_cube.x() - self.direction[0] * last_cube.width
-        new_y = last_cube.y() - self.direction[1] * last_cube.height
-        new_cube = SnakeCube(new_x, new_y)
-        self.move()
+        new_cube = SnakeCube()
         self.cube_list.append(new_cube)
         self.move()
 
@@ -107,9 +95,7 @@ class MainWindow(QMainWindow):
         self.graphicsView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.graphicsView.setAlignment(QtCore.Qt.AlignCenter)
         self.scene.setSceneRect(-400, -200, 800, 400)
-
-        self.snake = Snake()
-        
+                
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
         self.timer.start(100)
@@ -117,6 +103,7 @@ class MainWindow(QMainWindow):
         self.scene.keyPressEvent = self.scene_key_press
 
         self.create_food()
+        self.snake = Snake()
 
         self.window.show()
 
@@ -129,46 +116,42 @@ class MainWindow(QMainWindow):
             self.snake.change_direction((0, -1))
         elif event.key() == QtCore.Qt.Key_Down:
             self.snake.change_direction((0, 1))
-        self.tick()
+        self.tick() # makes the snake go faster as long as the button is pressed!
 
     def tick(self):
         self.scene.clear()
         if self.food != 0:
-            new_food = Food(0,0)
+            new_food = Food()
             new_food.setX(self.food.x())
             new_food.setY(self.food.y())
             self.scene.addItem(new_food)
         self.snake.move()
-        self.check_collision()
         for sc in self.snake.cube_list:
-            new_sc = SnakeCube(sc.x(), sc.y())
+            new_sc = SnakeCube()
+            new_sc.setX(sc.x())
+            new_sc.setY(sc.y())
             self.scene.addItem(new_sc)
+        self.check_collision()
 
     def create_food(self):
         self.food = 0
         x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
-        self.food = Food(x, y)
+        self.food = Food()
         self.food.setX(x)
         self.food.setY(y)
 
     def check_collision(self):
         head = self.snake.cube_list[0]
-        if len(self.snake.cube_list) < 1:
+        if (abs(head.x()) > self.graphicsView.viewport().width() / 2
+            or abs(head.y()) > self.graphicsView.viewport().height() / 2):
             self.game_over()
-        elif (
-            abs(head.x()) > self.graphicsView.viewport().width() / 2
-            or abs(head.y()) > self.graphicsView.viewport().height() / 2
-        ):
-            self.game_over()
-        elif (
-            self.food.x() - self.food.width / 2
+        elif (self.food.x() - self.food.width / 2
             <= head.x()
             <= self.food.x() + self.food.width / 2
             and self.food.y() - self.food.height / 2
             <= head.y()
-            <= self.food.y() + self.food.height / 2
-        ):
+            <= self.food.y() + self.food.height / 2):
             self.snake.score += 1
             self.food = 0
             items_to_remove = []
@@ -181,12 +164,16 @@ class MainWindow(QMainWindow):
             self.snake.grow()
 
     def game_over(self):
+        self.timer.stop()
         msg = QMessageBox()
         msg.setWindowTitle("Game Over")
-        msg.setText(f"Your score: {self.score}")
+        msg.setText(f"Your score: {self.snake.score}")
         msg.setIcon(QMessageBox.Information)
         msg.exec()
         self.scene.clear()
+        self.snake = Snake()
+        self.create_food()
+        self.timer.start(100)
 
 
 if __name__ == "__main__":
