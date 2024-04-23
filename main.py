@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, time, itertools
 import random
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -25,7 +25,7 @@ class Food(QGraphicsRectItem):
     def __init__(self):
         self.width = 15
         self.height = 15
-        super().__init__(0, 0, self.width, self.height) # x, y are set later
+        super().__init__(0, 0, self.width, self.height)  # x, y are set later
         self.setBrush(QBrush(QColor("orange")))
 
 
@@ -33,7 +33,7 @@ class SnakeCube(QGraphicsRectItem):
     def __init__(self):
         self.width = 5
         self.height = 5
-        super().__init__(0, 0, self.width, self.height) # x, y are set later
+        super().__init__(0, 0, self.width, self.height)  # x, y are set later
         self.setBrush(QBrush(QColor("green")))
 
 
@@ -43,18 +43,34 @@ class Snake:
         self.direction = self.get_random_direction()
         self.cube_list = [SnakeCube() for i in range(2)]
         self.move()
-
+        
     def get_random_direction(self):
         directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
         return random.choice(directions)
 
     def move(self):
-        cln = len(self.cube_list)
-        for i in range(cln - 1, 0, -1):
-            self.cube_list[i].setX(self.cube_list[i - 1].x())
-            self.cube_list[i].setY(self.cube_list[i - 1].y())
-        self.cube_list[0].setX(self.cube_list[0].x() + self.direction[0] * self.cube_list[0].width)
-        self.cube_list[0].setY(self.cube_list[0].y() + self.direction[1] * self.cube_list[0].height)
+        # st=time.perf_counter_ns()
+        
+        # method 1
+        # cln = len(self.cube_list)
+        # for i in range(cln - 1, 0, -1):
+        #     self.cube_list[i].setX(self.cube_list[i - 1].x())
+        #     self.cube_list[i].setY(self.cube_list[i - 1].y())
+        # self.cube_list[0].setX(self.cube_list[0].x() + self.direction[0] * self.cube_list[0].width)
+        # self.cube_list[0].setY(self.cube_list[0].y() + self.direction[1] * self.cube_list[0].height)
+        
+        # method 2
+        head = self.cube_list[0]
+        tail = self.cube_list[-1]
+        tail.setX(head.x() + self.direction[0] * head.width)
+        tail.setY(head.y() + self.direction[1] * head.height)
+        # self.cube_list = [self.cube_list[-1]] + self.cube_list[:-1]
+        
+        # method 2.5
+        self.cube_list.insert(0, self.cube_list.pop())
+
+        # et=time.perf_counter_ns()
+        # print(et-st)
 
     def grow(self):
         new_cube = SnakeCube()
@@ -94,7 +110,7 @@ class MainWindow(QMainWindow):
         self.graphicsView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.graphicsView.setAlignment(QtCore.Qt.AlignCenter)
         self.scene.setSceneRect(-400, -200, 800, 400)
-                
+
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
         self.timer.start(100)
@@ -115,7 +131,7 @@ class MainWindow(QMainWindow):
             self.snake.change_direction((0, -1))
         elif event.key() == QtCore.Qt.Key_Down:
             self.snake.change_direction((0, 1))
-        self.tick() # makes the snake go faster as long as the button is pressed!
+        self.tick()  # makes the snake go faster as long as the button is pressed!
 
     def tick(self):
         self.scene.clear()
@@ -142,15 +158,19 @@ class MainWindow(QMainWindow):
 
     def check_collision(self):
         head = self.snake.cube_list[0]
-        if (abs(head.x()) > self.graphicsView.viewport().width() / 2
-            or abs(head.y()) > self.graphicsView.viewport().height() / 2):
+        if (
+            abs(head.x()) > self.graphicsView.viewport().width() / 2
+            or abs(head.y()) > self.graphicsView.viewport().height() / 2
+        ):
             self.game_over()
-        elif (self.food.x() - self.food.width / 2
+        elif (
+            self.food.x() - self.food.width / 2
             <= head.x()
             <= self.food.x() + self.food.width / 2
             and self.food.y() - self.food.height / 2
             <= head.y()
-            <= self.food.y() + self.food.height / 2):
+            <= self.food.y() + self.food.height / 2
+        ):
             self.snake.score += 1
             self.food = 0
             items_to_remove = []
