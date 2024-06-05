@@ -8,9 +8,10 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QGraphicsRectItem,
+
 )
 from PySide6.QtUiTools import QUiLoader
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 
 def get_resource_path(path):
@@ -37,8 +38,9 @@ class SnakeCube(QGraphicsRectItem):
         self.setBrush(QBrush(QColor("green")))
 
 
-class Snake:
+class Snake(QtWidgets.QGraphicsScene):
     def __init__(self):
+        super().__init__()
         self.score = 0
         self.direction = self.get_random_direction()
         self.cube_list = [SnakeCube() for i in range(2)]
@@ -111,6 +113,11 @@ class MainWindow(QMainWindow):
         self.graphicsView.setAlignment(QtCore.Qt.AlignCenter)
         self.scene.setSceneRect(-400, -200, 800, 400)
 
+        self.scoreLabel = QtWidgets.QLabel("Score: 0", self.window)
+        self.scoreLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.scoreLabel.setStyleSheet("color: white; font-size: 20px;")
+        self.scoreLabel.setGeometry(350, 10, 100, 30)
+
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
         self.timer.start(100)
@@ -121,6 +128,8 @@ class MainWindow(QMainWindow):
         self.snake = Snake()
 
         self.window.show()
+    def update_score(self):
+        self.scoreLabel.setText(f"Score: {self.snake.score}")
 
     def scene_key_press(self, event):
         if event.key() == QtCore.Qt.Key_Left:
@@ -172,6 +181,7 @@ class MainWindow(QMainWindow):
             <= self.food.y() + self.food.height / 2
         ):
             self.snake.score += 1
+            self.update_score()
             self.food = 0
             items_to_remove = []
             for item in self.scene.items():
