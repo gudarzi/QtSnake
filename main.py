@@ -132,13 +132,13 @@ class MainWindow(QMainWindow):
         self.scoreLabel.setText(f"Score: {self.snake.score}")
 
     def scene_key_press(self, event):
-        if event.key() == QtCore.Qt.Key_Left:
+        if event.key() == QtCore.Qt.Key_Left or event.key() == QtCore.Qt.Key_A:   # added WASD support
             self.snake.change_direction((-1, 0))
-        elif event.key() == QtCore.Qt.Key_Right:
+        elif event.key() == QtCore.Qt.Key_Right or event.key() == QtCore.Qt.Key_D:
             self.snake.change_direction((1, 0))
-        elif event.key() == QtCore.Qt.Key_Up:
+        elif event.key() == QtCore.Qt.Key_Up or event.key() == QtCore.Qt.Key_W:
             self.snake.change_direction((0, -1))
-        elif event.key() == QtCore.Qt.Key_Down:
+        elif event.key() == QtCore.Qt.Key_Down or event.key() == QtCore.Qt.Key_S:
             self.snake.change_direction((0, 1))
         self.tick()  # makes the snake go faster as long as the button is pressed!
 
@@ -167,30 +167,27 @@ class MainWindow(QMainWindow):
 
     def check_collision(self):
         head = self.snake.cube_list[0]
-        if (
-            abs(head.x()) > self.graphicsView.viewport().width() / 2
-            or abs(head.y()) > self.graphicsView.viewport().height() / 2
-        ):
+
+        # Check collision with boundaries using scene's bounding rectangle
+        if not self.scene.sceneRect().contains(head.sceneBoundingRect()):
             self.game_over()
-        elif (
-            self.food.x() - self.food.width / 2
-            <= head.x()
-            <= self.food.x() + self.food.width / 2
-            and self.food.y() - self.food.height / 2
-            <= head.y()
-            <= self.food.y() + self.food.height / 2
-        ):
+            return
+
+        # Check self-collision by comparing positions
+        head_pos = (head.x(), head.y())
+        for cube in self.snake.cube_list[1:]:
+            if head_pos == (cube.x(), cube.y()):
+                self.game_over()
+                return
+
+        # Check collision with the food
+        if head.collidesWithItem(self.food):
             self.snake.score += 1
             self.update_score()
-            self.food = 0
-            items_to_remove = []
-            for item in self.scene.items():
-                if isinstance(item, Food):
-                    items_to_remove.append(item)
-            for item in items_to_remove:
-                self.scene.removeItem(item)
+            self.scene.removeItem(self.food)
             self.create_food()
             self.snake.grow()
+
 
     def game_over(self):
         self.timer.stop()
@@ -203,6 +200,7 @@ class MainWindow(QMainWindow):
         self.snake = Snake()
         self.create_food()
         self.timer.start(100)
+        self.update_score()
 
 
 if __name__ == "__main__":
