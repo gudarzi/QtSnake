@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
 
         self.create_food()
         self.snake = Snake()
-#added
+
         self.in_menu = True
         self.menu_selection = 0
         self.start_button = None
@@ -244,7 +244,8 @@ class MainWindow(QMainWindow):
 
         self.update_menu_selection()
         self.window.update()
-    def update_menu_selection(self):
+        
+    def show_start_menu(self):
         if self.menu_selection == 0:
             self.start_button.setStyleSheet("color: yellow; font-size: 30px;")
             self.quit_button.setStyleSheet("color: white; font-size: 30px;")
