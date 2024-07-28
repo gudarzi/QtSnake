@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QGraphicsRectItem,
-
 )
 from PySide6.QtUiTools import QUiLoader
 from PySide6 import QtCore, QtWidgets
@@ -126,36 +125,57 @@ class MainWindow(QMainWindow):
 
         self.create_food()
         self.snake = Snake()
+#added
+        self.in_menu = True
+        self.menu_selection = 0
+        self.start_button = None
+        self.quit_button = None
+        self.show_start_menu()
 
         self.window.show()
+
     def update_score(self):
         self.scoreLabel.setText(f"Score: {self.snake.score}")
 
     def scene_key_press(self, event):
-        if event.key() == QtCore.Qt.Key_Left or event.key() == QtCore.Qt.Key_A:   # added WASD support
-            self.snake.change_direction((-1, 0))
-        elif event.key() == QtCore.Qt.Key_Right or event.key() == QtCore.Qt.Key_D:
-            self.snake.change_direction((1, 0))
-        elif event.key() == QtCore.Qt.Key_Up or event.key() == QtCore.Qt.Key_W:
-            self.snake.change_direction((0, -1))
-        elif event.key() == QtCore.Qt.Key_Down or event.key() == QtCore.Qt.Key_S:
-            self.snake.change_direction((0, 1))
-        self.tick()  # makes the snake go faster as long as the button is pressed!
+        if self.in_menu:
+            if event.key() == QtCore.Qt.Key_Up or event.key() == QtCore.Qt.Key_W:
+                self.menu_selection = 0
+                self.update_menu_selection()
+            elif event.key() == QtCore.Qt.Key_Down or event.key() == QtCore.Qt.Key_S:
+                self.menu_selection = 1
+                self.update_menu_selection()
+            elif event.key() == QtCore.Qt.Key_Return or event.key() == QtCore.Qt.Key_Enter:
+                if self.menu_selection == 0:
+                    self.start_game()
+                elif self.menu_selection == 1:
+                    QApplication.quit()
+        else:
+            if event.key() == QtCore.Qt.Key_Left or event.key() == QtCore.Qt.Key_A:  # added WASD support
+                self.snake.change_direction((-1, 0))
+            elif event.key() == QtCore.Qt.Key_Right or event.key() == QtCore.Qt.Key_D:
+                self.snake.change_direction((1, 0))
+            elif event.key() == QtCore.Qt.Key_Up or event.key() == QtCore.Qt.Key_W:
+                self.snake.change_direction((0, -1))
+            elif event.key() == QtCore.Qt.Key_Down or event.key() == QtCore.Qt.Key_S:
+                self.snake.change_direction((0, 1))
+            self.tick()  # makes the snake go faster as long as the button is pressed!
 
     def tick(self):
-        self.scene.clear()
-        if self.food != 0:
-            new_food = Food()
-            new_food.setX(self.food.x())
-            new_food.setY(self.food.y())
-            self.scene.addItem(new_food)
-        self.snake.move()
-        for sc in self.snake.cube_list:
-            new_sc = SnakeCube()
-            new_sc.setX(sc.x())
-            new_sc.setY(sc.y())
-            self.scene.addItem(new_sc)
-        self.check_collision()
+        if not self.in_menu:
+            self.scene.clear()
+            if self.food != 0:
+                new_food = Food()
+                new_food.setX(self.food.x())
+                new_food.setY(self.food.y())
+                self.scene.addItem(new_food)
+            self.snake.move()
+            for sc in self.snake.cube_list:
+                new_sc = SnakeCube()
+                new_sc.setX(sc.x())
+                new_sc.setY(sc.y())
+                self.scene.addItem(new_sc)
+            self.check_collision()
 
     def create_food(self):
         self.food = 0
@@ -188,7 +208,6 @@ class MainWindow(QMainWindow):
             self.create_food()
             self.snake.grow()
 
-
     def game_over(self):
         self.timer.stop()
         msg = QMessageBox()
@@ -196,12 +215,51 @@ class MainWindow(QMainWindow):
         msg.setText(f"Your score: {self.snake.score}")
         msg.setIcon(QMessageBox.Information)
         msg.exec()
+
+        self.snake = Snake()
+
+        self.in_menu = True
+        self.menu_selection = 0
+        self.start_button = None
+        self.quit_button = None
+
+        self.show_start_menu()
+        self.update_score()
+
+    def show_start_menu(self):
+        self.in_menu = True
         self.scene.clear()
+
+        self.start_button = QtWidgets.QLabel("START", self.window)
+        self.start_button.setAlignment(QtCore.Qt.AlignCenter)
+        self.start_button.setStyleSheet("color: white; font-size: 30px;")
+        self.start_button.setGeometry(350, 150, 100, 50)
+        self.start_button.show()  
+
+        self.quit_button = QtWidgets.QLabel("QUIT", self.window)
+        self.quit_button.setAlignment(QtCore.Qt.AlignCenter)
+        self.quit_button.setStyleSheet("color: white; font-size: 30px;")
+        self.quit_button.setGeometry(350, 250, 100, 50)
+        self.quit_button.show()  
+
+        self.update_menu_selection()
+        self.window.update()
+    def update_menu_selection(self):
+        if self.menu_selection == 0:
+            self.start_button.setStyleSheet("color: yellow; font-size: 30px;")
+            self.quit_button.setStyleSheet("color: white; font-size: 30px;")
+        else:
+            self.start_button.setStyleSheet("color: white; font-size: 30px;")
+            self.quit_button.setStyleSheet("color: yellow; font-size: 30px;")
+
+    def start_game(self):
+        self.start_button.deleteLater()
+        self.quit_button.deleteLater()
+        self.in_menu = False
         self.snake = Snake()
         self.create_food()
         self.timer.start(100)
         self.update_score()
-
 
 if __name__ == "__main__":
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
