@@ -242,10 +242,16 @@ class MainWindow(QMainWindow):
         self.quit_button.setGeometry(350, 250, 100, 50)
         self.quit_button.show()  
 
+        self.dummy_text = QtWidgets.QLabel("Use Keyboard Keys To Navigate!", self.window)
+        self.dummy_text.setAlignment(QtCore.Qt.AlignCenter)
+        self.dummy_text.setStyleSheet("color: green; font-size: 14px;")
+        self.dummy_text.setGeometry(250, 350, 300, 50)
+        self.dummy_text.show()  
+
         self.update_menu_selection()
         self.window.update()
         
-    def show_start_menu(self):
+    def update_menu_selection(self):
         if self.menu_selection == 0:
             self.start_button.setStyleSheet("color: yellow; font-size: 30px;")
             self.quit_button.setStyleSheet("color: white; font-size: 30px;")
