@@ -45,6 +45,12 @@ class Snake(QtWidgets.QGraphicsScene):
         self.cube_list = [SnakeCube() for i in range(2)]
         self.move()
         
+# class Boost(QGraphicsRectItem):
+#     def __init__(self):
+#         self.width = 15
+#         self.height = 5
+#         super().__init__(0, 0, self.width, self.height)  
+        
     def get_random_direction(self):
         directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
         return random.choice(directions)
@@ -113,6 +119,7 @@ class MainWindow(QMainWindow):
         self.scene.setSceneRect(-400, -200, 800, 400)
 
         self.scoreLabel = QtWidgets.QLabel("Score: 0", self.window)
+        self.escLabel = QtWidgets.QLabel("\"esc\" to pause", self.window)
         self.scoreLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.scoreLabel.setStyleSheet("color: white; font-size: 20px;")
         self.scoreLabel.setGeometry(350, 10, 100, 30)
@@ -159,6 +166,8 @@ class MainWindow(QMainWindow):
                 self.snake.change_direction((0, -1))
             elif event.key() == QtCore.Qt.Key_Down or event.key() == QtCore.Qt.Key_S:
                 self.snake.change_direction((0, 1))
+            elif event.key() == QtCore.Qt.Key_Escape:
+                self.game_pause()
             self.tick()  # makes the snake go faster as long as the button is pressed!
 
     def tick(self):
@@ -207,6 +216,23 @@ class MainWindow(QMainWindow):
             self.scene.removeItem(self.food)
             self.create_food()
             self.snake.grow()
+    
+    def game_pause(self):
+        self.timer.stop()
+        msg1 = QMessageBox()
+        msg1.setWindowTitle("Game Paused")
+        current_score=self.snake.score
+        msg1.setText(f"Your score: {self.snake.score}\n Do you want to continue?")
+        msg1.setIcon(QMessageBox.Information)
+        continue_button = msg1.addButton("Continue", QMessageBox.ActionRole)
+        abort_button = msg1.addButton("Quit", QMessageBox.RejectRole)
+        msg1.exec() 
+        if msg1.clickedButton() == continue_button:
+            self.timer.start(100)
+        elif msg1.clickedButton() == abort_button:
+            self.game_over()
+        
+        
 
     def game_over(self):
         self.timer.stop()
