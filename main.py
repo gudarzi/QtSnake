@@ -150,13 +150,13 @@ class MainWindow(QMainWindow):
     def tick(self): #Update the game each tick
         if not self.in_menu:
             self.scene.clear()
-            if self.food != 0:
+            if self.food != 0: #Creates food if not present
                 new_food = Food()
                 new_food.setX(self.food.x())
                 new_food.setY(self.food.y())
                 self.scene.addItem(new_food)
             self.snake.move()
-            for sc in self.snake.cube_list:
+            for sc in self.snake.cube_list: #After snake has moved readds all snakecubes to the scene
                 new_sc = SnakeCube()
                 new_sc.setX(sc.x())
                 new_sc.setY(sc.y())
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
 
         # Check collision with the food
         if head.collidesWithItem(self.food):
-            self.snake.score += 1
+            self.snake.score += 1 #Score is updated by 1 for every food consumed
             self.update_score()
             self.scene.removeItem(self.food)
             self.create_food()
@@ -204,7 +204,7 @@ class MainWindow(QMainWindow):
         continue_button = msg1.addButton("Continue", QMessageBox.ActionRole)
         abort_button = msg1.addButton("Quit", QMessageBox.RejectRole)
         msg1.exec() 
-        if msg1.clickedButton() == continue_button:
+        if msg1.clickedButton() == continue_button: #Reinitalizes timer to resume game
             self.timer.start(100)
         elif msg1.clickedButton() == abort_button:
             self.game_over()
@@ -229,7 +229,7 @@ class MainWindow(QMainWindow):
         self.show_start_menu()
         self.update_score()
 
-    def show_start_menu(self):
+    def show_start_menu(self): #Displays start menu with start and quit buttons
         self.in_menu = True
         self.scene.clear()
 
