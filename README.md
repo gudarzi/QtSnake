@@ -8,14 +8,15 @@
 ## Table of Contents
 1. [How to Run](#how-to-run)
 2. [How to Build to EXE](#how-to-build-to-exe)
-3. [Issues](#issues)
-4. [How to Contribute](#how-to-contribute)
-5. [Disclaimer](#disclaimer)
+3. [Recently Added Features](#features)
+4. [Issues](#issues)
+5. [How to Contribute](#how-to-contribute)
+6. [Disclaimer](#disclaimer)
 
 
 ## How to Run
 To run the project:
-1. Make sure you have Python 3.x installed.
+1. Make sure you have Python 3.x installed, PySide6, and Qt
 2. Navigate to the project folder and install project requirements using pip:
 ```
 pip install -r requirements.txt
@@ -24,7 +25,9 @@ pip install -r requirements.txt
 ```
 python main.py
 ```
-4. Use keyboard arrows to play.
+4. Select start button and confirm
+
+5. Use keyboard arrows or WASD to play.
 
 
 ## How to Build to EXE
@@ -33,6 +36,12 @@ Use this command to compile the game into an `exe` executable:
 pyinstaller --noconfirm --onefile --windowed --add-data "main.ui;."  "main.py"
 ```
 
+## Recently Added Features
+Scoreboard - Increments by 1 for each food eaten
+
+Main menu and game over screen
+
+Pause screen
 
 ## Issues
 If you encounter any issues while running or building the project, please check out the [Issues](https://github.com/gudarzi/QtSnake/issues) section. There, you might find solutions to common problems or issues that other contributors are working on.
