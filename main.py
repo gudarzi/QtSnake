@@ -1,5 +1,4 @@
-import sys, os, time, itertools
-import random
+import sys, os, random
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -13,6 +12,7 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6 import QtCore, QtWidgets
 
 
+# Function to get the resource path for loading UI files
 def get_resource_path(path):
     try:
         base_path = sys._MEIPASS
@@ -21,6 +21,7 @@ def get_resource_path(path):
     return os.path.join(base_path, path)
 
 
+# Class representing Food item for the snake to consume
 class Food(QGraphicsRectItem):
     def __init__(self):
         self.width = 15
@@ -29,32 +30,38 @@ class Food(QGraphicsRectItem):
         self.setBrush(QBrush(QColor("orange")))
 
 
+# Class representing individual SnakeCube (each segment of the snake)
 class SnakeCube(QGraphicsRectItem):
     def __init__(self):
-        self.width = 5
-        self.height = 5
+        self.width = 15
+        self.height = 15
         super().__init__(0, 0, self.width, self.height)  # x, y are set later
         self.setBrush(QBrush(QColor("green")))
 
 
+# Class representing Obstacle
+class Obstacle(QGraphicsRectItem):
+    def __init__(self, x, y, width=30, height=30):
+        super().__init__(x, y, width, height)
+        self.setBrush(QBrush(QColor("red")))  # Set obstacle color to red for visibility
+        self.setPen(QtCore.Qt.NoPen)  # Remove border for cleaner look
+
+
+# Class representing the Snake and its behavior
 class Snake(QtWidgets.QGraphicsScene):
     def __init__(self):
         super().__init__()
         self.score = 0
-        self.direction = self.get_random_direction()
-        self.cube_list = [SnakeCube() for i in range(2)] #Snake is initially 2 cubes large
+        self.direction = (1, 0)  # Start moving right
+        self.cube_list = [SnakeCube() for i in range(2)]  # Snake is initially 2 cubes large
         self.move()
-        
-    def get_random_direction(self):
-        directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-        return random.choice(directions)
 
     def move(self):
         head = self.cube_list[0]
         tail = self.cube_list[-1]
-        tail.setX(head.x() + self.direction[0] * head.width) #Set tail position based on direction snake is about to head
+        tail.setX(head.x() + self.direction[0] * head.width)  # Set tail position based on direction snake is heading
         tail.setY(head.y() + self.direction[1] * head.height)
-        self.cube_list.insert(0, self.cube_list.pop()) #Insert tail and the beginning of list and remove from end
+        self.cube_list.insert(0, self.cube_list.pop())  # Insert tail at the beginning and remove from end
 
     def grow(self):
         new_cube = SnakeCube()
@@ -63,10 +70,11 @@ class Snake(QtWidgets.QGraphicsScene):
 
     def change_direction(self, direction):
         dx, dy = direction
-        if (dx, dy) != (-self.direction[0], -self.direction[1]): #Snake cannot go in opposite direction
+        if (dx, dy) != (-self.direction[0], -self.direction[1]):  # Prevent snake from going in the opposite direction
             self.direction = (dx, dy)
 
 
+# Main Window class for the Snake Game
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -103,10 +111,13 @@ class MainWindow(QMainWindow):
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
-        self.timer.start(100) #Timer will update every 100ms
+        self.timer.start(150)  # Set a slower timer for better game speed
 
         self.scene.keyPressEvent = self.scene_key_press
-        #Initalize game
+
+        # Initialize game elements
+        self.obstacles = []  # List to hold obstacles
+        self.food_count = 0  # Counter for food consumed
         self.create_food()
         self.snake = Snake()
 
@@ -122,7 +133,8 @@ class MainWindow(QMainWindow):
         self.scoreLabel.setText(f"Score: {self.snake.score}")
 
     def scene_key_press(self, event):
-        if self.in_menu: #Will only start or quit game if corresponding key is pressed and then confirmed with return/enter
+        if self.in_menu:
+            # Handle menu navigation and game start
             if event.key() == QtCore.Qt.Key_Up or event.key() == QtCore.Qt.Key_W:
                 self.menu_selection = 0
                 self.update_menu_selection()
@@ -135,7 +147,8 @@ class MainWindow(QMainWindow):
                 elif self.menu_selection == 1:
                     QApplication.quit()
         else:
-            if event.key() == QtCore.Qt.Key_Left or event.key() == QtCore.Qt.Key_A:  # Control snake with arrow keys or WASD
+            # Handle snake movement with arrow keys or WASD
+            if event.key() == QtCore.Qt.Key_Left or event.key() == QtCore.Qt.Key_A:
                 self.snake.change_direction((-1, 0))
             elif event.key() == QtCore.Qt.Key_Right or event.key() == QtCore.Qt.Key_D:
                 self.snake.change_direction((1, 0))
@@ -145,31 +158,44 @@ class MainWindow(QMainWindow):
                 self.snake.change_direction((0, 1))
             elif event.key() == QtCore.Qt.Key_Escape:
                 self.game_pause()
-            self.tick()  # makes the snake go faster as long as the button is pressed!
+            self.tick()  # Move snake with every key press
 
-    def tick(self): #Update the game each tick
+    def tick(self):
         if not self.in_menu:
-            self.scene.clear()
-            if self.food != 0: #Creates food if not present
-                new_food = Food()
-                new_food.setX(self.food.x())
-                new_food.setY(self.food.y())
-                self.scene.addItem(new_food)
+            # Update the scene without removing all elements
+            self.render_elements()
             self.snake.move()
-            for sc in self.snake.cube_list: #After snake has moved readds all snakecubes to the scene
-                new_sc = SnakeCube()
-                new_sc.setX(sc.x())
-                new_sc.setY(sc.y())
-                self.scene.addItem(new_sc)
             self.check_collision()
 
-    def create_food(self): #Food can spawn inside the snake, but will not be consumed unless the head contacts it
-        self.food = 0
+    def render_elements(self):
+        # Re-add food item if it exists
+        if self.food:
+            self.scene.addItem(self.food)
+
+        # Re-add all snake cubes to the scene
+        for sc in self.snake.cube_list:
+            self.scene.addItem(sc)
+
+        # Re-add all obstacles to the scene
+        for obstacle in self.obstacles:
+            self.scene.addItem(obstacle)
+
+    def create_food(self):
+        # Create a new food object and place it in the scene
         x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
         self.food = Food()
         self.food.setX(x)
         self.food.setY(y)
+        self.scene.addItem(self.food)  # Add the food item to the scene
+
+    def create_obstacle(self):
+        # Create a new obstacle and place it randomly in the scene
+        x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
+        y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
+        obstacle = Obstacle(x, y)
+        self.obstacles.append(obstacle)
+        self.scene.addItem(obstacle)  # Add the obstacle to the scene
 
     def check_collision(self):
         head = self.snake.cube_list[0]
@@ -188,28 +214,36 @@ class MainWindow(QMainWindow):
 
         # Check collision with the food
         if head.collidesWithItem(self.food):
-            self.snake.score += 1 #Score is updated by 1 for every food consumed
+            self.snake.score += 1  # Score is updated by 1 for every food consumed
+            self.food_count += 1  # Increment food count
             self.update_score()
             self.scene.removeItem(self.food)
             self.create_food()
             self.snake.grow()
-    
-    def game_pause(self): #Pauses game and displays message box that displays score and asks if the player wants to continue or quit
+
+            # Add obstacle every 5 food items consumed
+            if self.food_count % 5 == 0:
+                self.create_obstacle()
+
+        # Check collision with obstacles
+        for obstacle in self.obstacles:
+            if head.collidesWithItem(obstacle):
+                self.game_over()
+                return
+
+    def game_pause(self):
         self.timer.stop()
         msg1 = QMessageBox()
         msg1.setWindowTitle("Game Paused")
-        current_score=self.snake.score
         msg1.setText(f"Your score: {self.snake.score}\n Do you want to continue?")
         msg1.setIcon(QMessageBox.Information)
         continue_button = msg1.addButton("Continue", QMessageBox.ActionRole)
         abort_button = msg1.addButton("Quit", QMessageBox.RejectRole)
-        msg1.exec() 
-        if msg1.clickedButton() == continue_button: #Reinitalizes timer to resume game
-            self.timer.start(100)
+        msg1.exec()
+        if msg1.clickedButton() == continue_button:  # Reinitialize timer to resume game
+            self.timer.start(150)
         elif msg1.clickedButton() == abort_button:
             self.game_over()
-        
-        
 
     def game_over(self):
         self.timer.stop()
@@ -219,7 +253,11 @@ class MainWindow(QMainWindow):
         msg.setIcon(QMessageBox.Information)
         msg.exec()
 
-        self.snake = Snake() #Reset game state
+        # Reset the game state
+        self.snake = Snake()
+        self.obstacles.clear()  # Clear obstacles
+        self.scene.clear()  # Clear the entire scene to remove all items
+        self.food = None  # Reset food
 
         self.in_menu = True
         self.menu_selection = 0
@@ -229,7 +267,7 @@ class MainWindow(QMainWindow):
         self.show_start_menu()
         self.update_score()
 
-    def show_start_menu(self): #Displays start menu with start and quit buttons
+    def show_start_menu(self):
         self.in_menu = True
         self.scene.clear()
 
@@ -238,14 +276,14 @@ class MainWindow(QMainWindow):
         self.start_button.setStyleSheet("color: white; font-size: 30px;")
         self.start_button.setGeometry(350, 150, 100, 50)
         self.start_button.show()
-        self.start_button.mousePressEvent = self.start_button_clicked  
+        self.start_button.mousePressEvent = self.start_button_clicked
 
         self.quit_button = QtWidgets.QLabel("QUIT", self.window)
         self.quit_button.setAlignment(QtCore.Qt.AlignCenter)
         self.quit_button.setStyleSheet("color: white; font-size: 30px;")
         self.quit_button.setGeometry(350, 250, 100, 50)
         self.quit_button.show()
-        self.quit_button.mousePressEvent = self.quit_button_clicked  
+        self.quit_button.mousePressEvent = self.quit_button_clicked
 
         self.dummy_text = QtWidgets.QLabel("Use Keyboard Keys or Mouse To Navigate!", self.window)
         self.dummy_text.setAlignment(QtCore.Qt.AlignCenter)
@@ -255,8 +293,8 @@ class MainWindow(QMainWindow):
 
         self.update_menu_selection()
         self.window.update()
-            
-    def update_menu_selection(self): #Highlights which one of the two options is awaiting conformation to be executed
+
+    def update_menu_selection(self):
         if self.menu_selection == 0:
             self.start_button.setStyleSheet("color: yellow; font-size: 30px;")
             self.quit_button.setStyleSheet("color: white; font-size: 30px;")
@@ -276,8 +314,11 @@ class MainWindow(QMainWindow):
         self.in_menu = False
         self.snake = Snake()
         self.create_food()
-        self.timer.start(100)
+        self.obstacles.clear()  # Clear any existing obstacles
+        self.food_count = 0  # Reset food count
+        self.timer.start(150)  # Reset game timer
         self.update_score()
+
 
 if __name__ == "__main__":
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
