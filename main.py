@@ -169,16 +169,18 @@ class MainWindow(QMainWindow):
 
     def render_elements(self):
         # Re-add food item if it exists
-        if self.food:
+        if self.food and self.food.scene() != self.scene:
             self.scene.addItem(self.food)
 
         # Re-add all snake cubes to the scene
         for sc in self.snake.cube_list:
-            self.scene.addItem(sc)
+            if sc.scene() != self.scene:
+                self.scene.addItem(sc)
 
         # Re-add all obstacles to the scene
         for obstacle in self.obstacles:
-            self.scene.addItem(obstacle)
+            if obstacle.scene() != self.scene:
+                self.scene.addItem(obstacle)
 
     def create_food(self):
         # Create a new food object and place it in the scene
