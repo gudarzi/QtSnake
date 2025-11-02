@@ -193,11 +193,41 @@ class MainWindow(QMainWindow):
 
     def create_obstacle(self):
         # Create a new obstacle and place it randomly in the scene
-        x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
-        y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
-        obstacle = Obstacle(x, y)
-        self.obstacles.append(obstacle)
-        self.scene.addItem(obstacle)  # Add the obstacle to the scene
+        # Try multiple times to find a valid position
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
+            y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
+            
+            # Create temporary obstacle to check collisions
+            temp_obstacle = Obstacle(x, y)
+            
+            # Check if obstacle collides with snake
+            collision_with_snake = False
+            for cube in self.snake.cube_list:
+                if temp_obstacle.collidesWithItem(cube):
+                    collision_with_snake = True
+                    break
+            
+            # Check if obstacle collides with food
+            collision_with_food = temp_obstacle.collidesWithItem(self.food)
+            
+            # Check if obstacle collides with existing obstacles
+            collision_with_obstacles = False
+            for existing_obstacle in self.obstacles:
+                if temp_obstacle.collidesWithItem(existing_obstacle):
+                    collision_with_obstacles = True
+                    break
+            
+            # If no collision, place the obstacle
+            if not collision_with_snake and not collision_with_food and not collision_with_obstacles:
+                obstacle = Obstacle(x, y)
+                self.obstacles.append(obstacle)
+                self.scene.addItem(obstacle)
+                return
+        
+        # If we couldn't find a valid position after max_attempts, don't create obstacle
+        print(f"Warning: Could not find valid position for obstacle after {max_attempts} attempts")
 
     def check_collision(self):
         head = self.snake.cube_list[0]
