@@ -1,4 +1,8 @@
-import sys, os, random
+import json
+import os
+import random
+import sys
+
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -23,11 +27,25 @@ def get_resource_path(path):
 
 # Class representing Food item for the snake to consume
 class Food(QGraphicsRectItem):
-    def __init__(self):
+    def __init__(self, food_type="normal"):
         self.width = 15
         self.height = 15
         super().__init__(0, 0, self.width, self.height)  # x, y are set later
-        self.setBrush(QBrush(QColor("orange")))
+        self.food_type = food_type
+        
+        # Set color and points based on food type
+        if food_type == "golden":
+            self.setBrush(QBrush(QColor("gold")))
+            self.points = 3
+        elif food_type == "speed_boost":
+            self.setBrush(QBrush(QColor("cyan")))
+            self.points = 1
+        elif food_type == "slow_down":
+            self.setBrush(QBrush(QColor("purple")))
+            self.points = 1
+        else:  # normal
+            self.setBrush(QBrush(QColor("orange")))
+            self.points = 1
 
 
 # Class representing individual SnakeCube (each segment of the snake)
@@ -41,9 +59,14 @@ class SnakeCube(QGraphicsRectItem):
 
 # Class representing Obstacle
 class Obstacle(QGraphicsRectItem):
-    def __init__(self, x, y, width=30, height=30):
+    def __init__(self, x, y, width=30, height=30, obstacle_type="static"):
         super().__init__(x, y, width, height)
-        self.setBrush(QBrush(QColor("red")))  # Set obstacle color to red for visibility
+        self.obstacle_type = obstacle_type
+        
+        if obstacle_type == "wall":
+            self.setBrush(QBrush(QColor("gray")))
+        else:
+            self.setBrush(QBrush(QColor("red")))  # Set obstacle color to red for visibility
         self.setPen(QtCore.Qt.NoPen)  # Remove border for cleaner look
 
 
@@ -104,22 +127,38 @@ class MainWindow(QMainWindow):
         self.scene.setSceneRect(-400, -200, 800, 400)
 
         self.scoreLabel = QtWidgets.QLabel("Score: 0", self.window)
+        self.levelLabel = QtWidgets.QLabel("Level: 1", self.window)
         self.escLabel = QtWidgets.QLabel("\"esc\" to pause", self.window)
         self.scoreLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.scoreLabel.setStyleSheet("color: white; font-size: 20px;")
         self.scoreLabel.setGeometry(350, 10, 100, 30)
+        
+        self.levelLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.levelLabel.setStyleSheet("color: cyan; font-size: 20px;")
+        self.levelLabel.setGeometry(10, 10, 100, 30)
+        
+        self.powerUpLabel = QtWidgets.QLabel("", self.window)
+        self.powerUpLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.powerUpLabel.setStyleSheet("color: yellow; font-size: 16px;")
+        self.powerUpLabel.setGeometry(250, 350, 300, 30)
+        self.powerUpLabel.hide()
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.tick)
-        self.timer.start(150)  # Set a slower timer for better game speed
+        self.base_speed = 150  # Base game speed
+        self.timer.start(self.base_speed)  # Set a slower timer for better game speed
 
         self.scene.keyPressEvent = self.scene_key_press
 
         # Initialize game elements
         self.obstacles = []  # List to hold obstacles
         self.food_count = 0  # Counter for food consumed
+        self.level = 1  # Current game level
+        self.points_to_next_level = 5  # Points needed to advance to next level
+        self.high_score = self.load_high_score()  # Track high score
+        self.speed_boost_active = False  # Track if speed boost is active
+        self.snake = Snake()  # Initialize snake before food
         self.create_food()
-        self.snake = Snake()
 
         self.in_menu = True
         self.menu_selection = 0
@@ -131,6 +170,30 @@ class MainWindow(QMainWindow):
 
     def update_score(self):
         self.scoreLabel.setText(f"Score: {self.snake.score}")
+        
+    def update_level(self):
+        self.levelLabel.setText(f"Level: {self.level}")
+    
+    def load_high_score(self):
+        # Load high score from file
+        high_score_file = "snake_highscore.json"
+        try:
+            if os.path.exists(high_score_file):
+                with open(high_score_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get('high_score', 0)
+        except Exception as e:
+            print(f"Error loading high score: {e}")
+        return 0
+    
+    def save_high_score(self):
+        # Save high score to file
+        high_score_file = "snake_highscore.json"
+        try:
+            with open(high_score_file, 'w') as f:
+                json.dump({'high_score': self.high_score}, f)
+        except Exception as e:
+            print(f"Error saving high score: {e}")
 
     def scene_key_press(self, event):
         if self.in_menu:
@@ -184,12 +247,54 @@ class MainWindow(QMainWindow):
 
     def create_food(self):
         # Create a new food object and place it in the scene
+        # Try multiple times to find a valid position that doesn't collide with obstacles
+        max_attempts = 20
+        for attempt in range(max_attempts):
+            x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
+            y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
+            
+            # Randomly determine food type (10% golden, 10% speed boost, 10% slow down, 70% normal)
+            rand_val = random.random()
+            if rand_val < 0.10:
+                food_type = "golden"
+            elif rand_val < 0.20:
+                food_type = "speed_boost"
+            elif rand_val < 0.30:
+                food_type = "slow_down"
+            else:
+                food_type = "normal"
+            
+            temp_food = Food(food_type)
+            temp_food.setX(x)
+            temp_food.setY(y)
+            
+            # Check if food collides with any obstacles
+            collision_with_obstacles = False
+            for obstacle in self.obstacles:
+                if temp_food.collidesWithItem(obstacle):
+                    collision_with_obstacles = True
+                    break
+            
+            # Check if food collides with snake
+            collision_with_snake = False
+            for cube in self.snake.cube_list:
+                if temp_food.collidesWithItem(cube):
+                    collision_with_snake = True
+                    break
+            
+            # If no collision, place the food
+            if not collision_with_obstacles and not collision_with_snake:
+                self.food = temp_food
+                self.scene.addItem(self.food)  # Add the food item to the scene
+                return
+        
+        # If we couldn't find a valid position, just place it anyway (fallback)
+        self.food = Food("normal")
         x = self.scene.width() * (0.1 + 0.8 * (random.random()) - 0.5)
         y = self.scene.height() * (0.1 + 0.8 * (random.random()) - 0.5)
-        self.food = Food()
         self.food.setX(x)
         self.food.setY(y)
-        self.scene.addItem(self.food)  # Add the food item to the scene
+        self.scene.addItem(self.food)
 
     def create_obstacle(self):
         # Create a new obstacle and place it randomly in the scene
@@ -246,12 +351,42 @@ class MainWindow(QMainWindow):
 
         # Check collision with the food
         if head.collidesWithItem(self.food):
-            self.snake.score += 1  # Score is updated by 1 for every food consumed
+            # Apply food effects based on type
+            food_type = self.food.food_type
+            self.snake.score += self.food.points  # Score updated based on food type
             self.food_count += 1  # Increment food count
+            
+            # Handle special food effects
+            if food_type == "golden":
+                # Show golden food message briefly
+                self.show_powerup_message("⭐ Golden Food! +3 Points! ⭐", "gold")
+            elif food_type == "speed_boost":
+                # Temporarily increase speed
+                current_speed = self.timer.interval()
+                new_speed = max(30, current_speed - 50)
+                self.timer.setInterval(new_speed)
+                self.speed_boost_active = True
+                self.show_powerup_message("⚡ Speed Boost! Going Fast! ⚡", "cyan")
+                # Reset speed after 5 seconds
+                QtCore.QTimer.singleShot(5000, self.reset_speed)
+            elif food_type == "slow_down":
+                # Temporarily decrease speed
+                current_speed = self.timer.interval()
+                new_speed = min(200, current_speed + 50)
+                self.timer.setInterval(new_speed)
+                self.speed_boost_active = True
+                self.show_powerup_message("🐌 Slow Motion! Take it Easy! 🐌", "purple")
+                # Reset speed after 5 seconds
+                QtCore.QTimer.singleShot(5000, self.reset_speed)
+            
             self.update_score()
             self.scene.removeItem(self.food)
             self.create_food()
             self.snake.grow()
+
+            # Check if level up is needed (consistent: every N apples)
+            if self.food_count >= self.level * self.points_to_next_level:
+                self.level_up()
 
             # Add obstacle every 5 food items consumed
             if self.food_count % 5 == 0:
@@ -263,25 +398,99 @@ class MainWindow(QMainWindow):
                 self.game_over()
                 return
 
+    def show_powerup_message(self, message, color):
+        # Show power-up message temporarily
+        self.powerUpLabel.setText(message)
+        self.powerUpLabel.setStyleSheet(f"color: {color}; font-size: 16px; font-weight: bold;")
+        self.powerUpLabel.show()
+        # Hide after 3 seconds
+        QtCore.QTimer.singleShot(3000, self.powerUpLabel.hide)
+    
+    def reset_speed(self):
+        # Reset speed to level-appropriate speed
+        if not self.speed_boost_active:
+            return
+        new_speed = max(70, self.base_speed - (self.level - 1) * 10)
+        self.timer.setInterval(new_speed)
+        self.speed_boost_active = False
+        self.show_powerup_message("⏱️ Normal Speed Restored", "white")
+    
+    def create_level_obstacles(self):
+        # Create level-specific obstacle patterns - more gradual introduction
+        if self.level == 5:
+            # Add first horizontal wall at level 5
+            self.create_wall_obstacle(-300, -100, 150, 20)
+        
+        if self.level == 7:
+            # Add second horizontal wall at level 7
+            self.create_wall_obstacle(150, 80, 150, 20)
+        
+        if self.level == 10:
+            # Add first vertical wall at level 10
+            self.create_wall_obstacle(-200, -150, 20, 100)
+        
+        if self.level == 12:
+            # Add second vertical wall at level 12
+            self.create_wall_obstacle(200, 0, 20, 100)
+        
+        if self.level == 15:
+            # Add corner obstacles at level 15
+            self.create_wall_obstacle(-350, -180, 80, 20)
+            self.create_wall_obstacle(-350, -180, 20, 80)
+    
+    def create_wall_obstacle(self, x, y, width, height):
+        # Create a wall-type obstacle
+        wall = Obstacle(x, y, width, height, "wall")
+        self.obstacles.append(wall)
+        self.scene.addItem(wall)
+    
+    def level_up(self):
+        self.level += 1
+        self.update_level()
+        
+        # Increase game speed more gradually (slower progression)
+        new_speed = max(70, self.base_speed - (self.level - 1) * 10)
+        self.timer.setInterval(new_speed)
+        
+        # Add obstacles more gradually - only every other level
+        if self.level % 2 == 0:
+            self.create_obstacle()
+        
+        # Add level-specific obstacle patterns only at key levels
+        self.create_level_obstacles()
+        
+        # Show level up message in the game (no pop-up)
+        self.show_powerup_message(f"🎉 LEVEL {self.level}! 🎉", "yellow")
+    
     def game_pause(self):
         self.timer.stop()
         msg1 = QMessageBox()
         msg1.setWindowTitle("Game Paused")
-        msg1.setText(f"Your score: {self.snake.score}\n Do you want to continue?")
+        msg1.setText(f"Level: {self.level}\nYour score: {self.snake.score}\n Do you want to continue?")
         msg1.setIcon(QMessageBox.Information)
         continue_button = msg1.addButton("Continue", QMessageBox.ActionRole)
         abort_button = msg1.addButton("Quit", QMessageBox.RejectRole)
         msg1.exec()
         if msg1.clickedButton() == continue_button:  # Reinitialize timer to resume game
-            self.timer.start(150)
+            current_speed = max(70, self.base_speed - (self.level - 1) * 10)
+            self.timer.start(current_speed)
         elif msg1.clickedButton() == abort_button:
             self.game_over()
 
     def game_over(self):
         self.timer.stop()
+        
+        # Update high score
+        if self.snake.score > self.high_score:
+            self.high_score = self.snake.score
+            self.save_high_score()  # Save new high score to file
+            high_score_text = "\n🎉 NEW HIGH SCORE! 🎉"
+        else:
+            high_score_text = f"\nHigh Score: {self.high_score}"
+        
         msg = QMessageBox()
         msg.setWindowTitle("Game Over")
-        msg.setText(f"Your score: {self.snake.score}")
+        msg.setText(f"Level Reached: {self.level}\nYour Score: {self.snake.score}{high_score_text}")
         msg.setIcon(QMessageBox.Information)
         msg.exec()
 
@@ -290,6 +499,7 @@ class MainWindow(QMainWindow):
         self.obstacles.clear()  # Clear obstacles
         self.scene.clear()  # Clear the entire scene to remove all items
         self.food = None  # Reset food
+        self.level = 1  # Reset level
 
         self.in_menu = True
         self.menu_selection = 0
@@ -298,10 +508,18 @@ class MainWindow(QMainWindow):
 
         self.show_start_menu()
         self.update_score()
+        self.update_level()
 
     def show_start_menu(self):
         self.in_menu = True
         self.scene.clear()
+        
+        # Show high score in menu
+        self.high_score_menu = QtWidgets.QLabel(f"High Score: {self.high_score}", self.window)
+        self.high_score_menu.setAlignment(QtCore.Qt.AlignCenter)
+        self.high_score_menu.setStyleSheet("color: gold; font-size: 24px; font-weight: bold;")
+        self.high_score_menu.setGeometry(250, 50, 300, 50)
+        self.high_score_menu.show()
 
         self.start_button = QtWidgets.QLabel("START", self.window)
         self.start_button.setAlignment(QtCore.Qt.AlignCenter)
@@ -343,13 +561,17 @@ class MainWindow(QMainWindow):
     def start_game(self):
         self.start_button.deleteLater()
         self.quit_button.deleteLater()
+        self.dummy_text.deleteLater()
+        self.high_score_menu.deleteLater()
         self.in_menu = False
         self.snake = Snake()
+        self.level = 1  # Reset level
         self.create_food()
         self.obstacles.clear()  # Clear any existing obstacles
         self.food_count = 0  # Reset food count
-        self.timer.start(150)  # Reset game timer
+        self.timer.start(self.base_speed)  # Reset game timer to base speed
         self.update_score()
+        self.update_level()
 
 
 if __name__ == "__main__":
