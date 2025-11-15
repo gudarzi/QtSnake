@@ -126,9 +126,10 @@ class MainWindow(QMainWindow):
         self.graphicsView.setAlignment(QtCore.Qt.AlignCenter)
         self.scene.setSceneRect(-400, -200, 800, 400)
 
-        self.scoreLabel = QtWidgets.QLabel("Score: 0", self.window)
-        self.levelLabel = QtWidgets.QLabel("Level: 1", self.window)
-        self.escLabel = QtWidgets.QLabel("\"esc\" to pause", self.window)
+        #take the labels define in main.ui
+        self.scoreLabel = self.window.findChild(QtWidgets.QLabel, "scoreLabel")
+        self.levelLabel = self.window.findChild(QtWidgets.QLabel, "levelLabel")
+        self.escLabel = self.window.findChild(QtWidgets.QLabel, "escLabel")
         self.scoreLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.scoreLabel.setStyleSheet("color: white; font-size: 20px;")
         self.scoreLabel.setGeometry(350, 10, 100, 30)
@@ -137,7 +138,7 @@ class MainWindow(QMainWindow):
         self.levelLabel.setStyleSheet("color: cyan; font-size: 20px;")
         self.levelLabel.setGeometry(10, 10, 100, 30)
         
-        self.powerUpLabel = QtWidgets.QLabel("", self.window)
+        self.powerUpLabel = self.window.findChild(QtWidgets.QLabel, "powerUpLabel")
         self.powerUpLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.powerUpLabel.setStyleSheet("color: yellow; font-size: 16px;")
         self.powerUpLabel.setGeometry(250, 350, 300, 30)
@@ -162,8 +163,17 @@ class MainWindow(QMainWindow):
 
         self.in_menu = True
         self.menu_selection = 0
-        self.start_button = None
-        self.quit_button = None
+
+        #take the labels define in main.ui
+        self.high_score_menu = self.window.findChild(QtWidgets.QLabel, "high_score_menu")
+        self.start_button = self.window.findChild(QtWidgets.QLabel, "start_button")
+        self.quit_button = self.window.findChild(QtWidgets.QLabel, "quit_button")
+        self.dummy_text = self.window.findChild(QtWidgets.QLabel, "dummy_text")
+
+        #make the labels clickable
+        self.start_button.mousePressEvent = self.start_button_clicked
+        self.quit_button.mousePressEvent = self.quit_button_clicked
+
         self.show_start_menu()
 
         self.window.show()
@@ -503,8 +513,6 @@ class MainWindow(QMainWindow):
 
         self.in_menu = True
         self.menu_selection = 0
-        self.start_button = None
-        self.quit_button = None
 
         self.show_start_menu()
         self.update_score()
@@ -513,34 +521,14 @@ class MainWindow(QMainWindow):
     def show_start_menu(self):
         self.in_menu = True
         self.scene.clear()
-        
-        # Show high score in menu
-        self.high_score_menu = QtWidgets.QLabel(f"High Score: {self.high_score}", self.window)
-        self.high_score_menu.setAlignment(QtCore.Qt.AlignCenter)
-        self.high_score_menu.setStyleSheet("color: gold; font-size: 24px; font-weight: bold;")
-        self.high_score_menu.setGeometry(250, 50, 300, 50)
+
+        self.high_score_menu.setText(f"High Score: {self.high_score}")
         self.high_score_menu.show()
-
-        self.start_button = QtWidgets.QLabel("START", self.window)
-        self.start_button.setAlignment(QtCore.Qt.AlignCenter)
-        self.start_button.setStyleSheet("color: white; font-size: 30px;")
-        self.start_button.setGeometry(350, 150, 100, 50)
         self.start_button.show()
-        self.start_button.mousePressEvent = self.start_button_clicked
-
-        self.quit_button = QtWidgets.QLabel("QUIT", self.window)
-        self.quit_button.setAlignment(QtCore.Qt.AlignCenter)
-        self.quit_button.setStyleSheet("color: white; font-size: 30px;")
-        self.quit_button.setGeometry(350, 250, 100, 50)
         self.quit_button.show()
-        self.quit_button.mousePressEvent = self.quit_button_clicked
-
-        self.dummy_text = QtWidgets.QLabel("Use Keyboard Keys or Mouse To Navigate!", self.window)
-        self.dummy_text.setAlignment(QtCore.Qt.AlignCenter)
-        self.dummy_text.setStyleSheet("color: green; font-size: 14px;")
-        self.dummy_text.setGeometry(250, 350, 300, 50)
         self.dummy_text.show()
 
+        self.menu_selection = 0
         self.update_menu_selection()
         self.window.update()
 
@@ -559,10 +547,10 @@ class MainWindow(QMainWindow):
         QApplication.quit()
 
     def start_game(self):
-        self.start_button.deleteLater()
-        self.quit_button.deleteLater()
-        self.dummy_text.deleteLater()
-        self.high_score_menu.deleteLater()
+        self.start_button.hide()
+        self.quit_button.hide()
+        self.dummy_text.hide()
+        self.high_score_menu.hide()
         self.in_menu = False
         self.snake = Snake()
         self.level = 1  # Reset level
