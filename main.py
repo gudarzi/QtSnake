@@ -130,18 +130,7 @@ class MainWindow(QMainWindow):
         self.scoreLabel = self.window.findChild(QtWidgets.QLabel, "scoreLabel")
         self.levelLabel = self.window.findChild(QtWidgets.QLabel, "levelLabel")
         self.escLabel = self.window.findChild(QtWidgets.QLabel, "escLabel")
-        self.scoreLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.scoreLabel.setStyleSheet("color: white; font-size: 20px;")
-        self.scoreLabel.setGeometry(350, 10, 100, 30)
-        
-        self.levelLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.levelLabel.setStyleSheet("color: cyan; font-size: 20px;")
-        self.levelLabel.setGeometry(10, 10, 100, 30)
-        
         self.powerUpLabel = self.window.findChild(QtWidgets.QLabel, "powerUpLabel")
-        self.powerUpLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.powerUpLabel.setStyleSheet("color: yellow; font-size: 16px;")
-        self.powerUpLabel.setGeometry(250, 350, 300, 30)
         self.powerUpLabel.hide()
 
         self.timer = QtCore.QTimer()
@@ -166,13 +155,14 @@ class MainWindow(QMainWindow):
 
         #take the labels define in main.ui
         self.high_score_menu = self.window.findChild(QtWidgets.QLabel, "high_score_menu")
-        self.start_button = self.window.findChild(QtWidgets.QLabel, "start_button")
-        self.quit_button = self.window.findChild(QtWidgets.QLabel, "quit_button")
+        self.start_button = self.window.findChild(QtWidgets.QPushButton, "start_button")
+        self.quit_button = self.window.findChild(QtWidgets.QPushButton, "quit_button")
         self.dummy_text = self.window.findChild(QtWidgets.QLabel, "dummy_text")
 
-        #make the labels clickable
-        self.start_button.mousePressEvent = self.start_button_clicked
-        self.quit_button.mousePressEvent = self.quit_button_clicked
+        self.start_button.clicked.connect(self.start_button_clicked)
+        self.quit_button.clicked.connect(self.quit_button_clicked)
+
+
 
         self.show_start_menu()
 
@@ -512,8 +502,6 @@ class MainWindow(QMainWindow):
         self.level = 1  # Reset level
 
         self.in_menu = True
-        self.menu_selection = 0
-
         self.show_start_menu()
         self.update_score()
         self.update_level()
@@ -540,11 +528,11 @@ class MainWindow(QMainWindow):
             self.start_button.setStyleSheet("color: white; font-size: 30px;")
             self.quit_button.setStyleSheet("color: yellow; font-size: 30px;")
 
-    def start_button_clicked(self, event):
+    def start_button_clicked(self):
         self.start_game()
 
-    def quit_button_clicked(self, event):
-        QApplication.quit()
+    def quit_button_clicked(self):
+        QtWidgets.QApplication.quit()
 
     def start_game(self):
         self.start_button.hide()

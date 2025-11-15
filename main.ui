@@ -114,10 +114,10 @@
    <widget class="QLabel" name="powerUpLabel">
     <property name="geometry">
      <rect>
-      <x>370</x>
+      <x>280</x>
       <y>350</y>
-      <width>49</width>
-      <height>16</height>
+      <width>271</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -156,47 +156,6 @@ font: 600 14pt &quot;Segoe UI&quot;;</string>
      <number>-1</number>
     </property>
    </widget>
-   <widget class="QLabel" name="start_button">
-    <property name="geometry">
-     <rect>
-      <x>350</x>
-      <y>80</y>
-      <width>101</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: white</string>
-    </property>
-    <property name="text">
-     <string>START</string>
-    </property>
-    <property name="textFormat">
-     <enum>Qt::TextFormat::AutoText</enum>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignmentFlag::AlignCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="quit_button">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>160</y>
-      <width>161</width>
-      <height>81</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: white</string>
-    </property>
-    <property name="text">
-     <string>QUIT</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignmentFlag::AlignCenter</set>
-    </property>
-   </widget>
    <widget class="QLabel" name="dummy_text">
     <property name="geometry">
      <rect>
@@ -216,15 +175,49 @@ font: 600 14pt &quot;Segoe UI&quot;;</string>
      <set>Qt::AlignmentFlag::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QPushButton" name="start_button">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>80</y>
+      <width>191</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);
+font: 18pt &quot;Segoe UI&quot;;</string>
+    </property>
+    <property name="text">
+     <string>START</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="quit_button">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>200</y>
+      <width>191</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);
+font: 18pt &quot;Segoe UI&quot;;</string>
+    </property>
+    <property name="text">
+     <string>QUIT</string>
+    </property>
+   </widget>
    <zorder>graphicsView</zorder>
    <zorder>scoreLabel</zorder>
    <zorder>escLabel</zorder>
    <zorder>levelLabel</zorder>
    <zorder>powerUpLabel</zorder>
    <zorder>high_score_menu</zorder>
+   <zorder>dummy_text</zorder>
    <zorder>start_button</zorder>
    <zorder>quit_button</zorder>
-   <zorder>dummy_text</zorder>
   </widget>
  </widget>
  <resources/>
