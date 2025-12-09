@@ -112,7 +112,7 @@ class Food(QGraphicsRectItem):
             self.setBrush(QBrush(QColor("cyan")))
             self.points = 1
         elif food_type == "slow_down":
-            self.setBrush(QBrush(QColor("violet")))
+            self.setBrush(QBrush(QColor("blue")))
             self.points = 1
         elif food_type == "shield":
             self.setBrush(QBrush(QColor("purple")))
