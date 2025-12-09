@@ -48,15 +48,17 @@ def move_items_while_respecting_border(item, scene, snake_cubes, obstacles, move
         if not getattr(item, '_direction_timer_set', False):
             item._direction_timer_set = True
             def change_direction():
-                if hasattr(item, 'vx') and hasattr(item, 'vy'):
-                    if random.random() < 0.5:
-                        item.vx = random.choice([-1, 1]) * speed
-                        item.vy = 0
-                    else:
-                        item.vx = 0
-                        item.vy = random.choice([-1, 1]) * speed
-                QtCore.QTimer.singleShot(2000, change_direction)  
-            QtCore.QTimer.singleShot(2000, change_direction)
+                 if not item.scene():
+                    return  # Stop if item is no longer in the scene to prevent runtime errors
+                    if hasattr(item, 'vx') and hasattr(item, 'vy'):
+                        if random.random() < 0.5:
+                            item.vx = random.choice([-1, 1]) * speed
+                            item.vy = 0
+                        else:
+                            item.vx = 0
+                            item.vy = random.choice([-1, 1]) * speed
+                    QtCore.QTimer.singleShot(2000, change_direction)  
+                 QtCore.QTimer.singleShot(2000, change_direction)
 
     # Set new position
     new_x = item.x() + item.vx
@@ -110,8 +112,11 @@ class Food(QGraphicsRectItem):
             self.setBrush(QBrush(QColor("cyan")))
             self.points = 1
         elif food_type == "slow_down":
-            self.setBrush(QBrush(QColor("purple")))
+            self.setBrush(QBrush(QColor("violet")))
             self.points = 1
+        elif food_type == "shield":
+            self.setBrush(QBrush(QColor("purple")))
+            self.points = 0  # shield does not give score
         else:
             self.setBrush(QBrush(QColor("orange")))
             self.points = 1
@@ -181,10 +186,6 @@ class Snake(QtWidgets.QGraphicsScene):
         dx, dy = direction
         if (dx, dy) != (-self.direction[0], -self.direction[1]):  # Prevent snake from going in the opposite direction
             self.direction = (dx, dy)
-
-    def set_color(self, color_name):
-        for cube in self.cube_list:
-            cube.setBrush(QBrush(QColor(color_name)))
     
     def set_color(self, color):
         self.color = color
@@ -450,19 +451,18 @@ class MainWindow(QMainWindow):
         self.food.setY(y)
         self.scene.addItem(self.food)
 
+
     def spawn_shield_food(self):
         # Only spawn if player has no shield and there is no existing shield food
         if self.shields > 0 or self.shield_food is not None:
             return
 
-        # Place the shield food at a random location not colliding with snake or obstacles
         max_attempts = 20
         for attempt in range(max_attempts):
             x = self.scene.width() * (0.1 + 0.8 * random.random() - 0.5)
             y = self.scene.height() * (0.1 + 0.8 * random.random() - 0.5)
 
-            temp_food = Food("shield")  # We'll treat shield as a special food type
-            temp_food.setBrush(QBrush(QColor("purple")))  # Make it purple
+            temp_food = Food("shield")  
             temp_food.setX(x)
             temp_food.setY(y)
 
@@ -471,6 +471,7 @@ class MainWindow(QMainWindow):
                 if temp_food.collidesWithItem(cube):
                     collision = True
                     break
+
             for obs in self.obstacles:
                 if temp_food.collidesWithItem(obs):
                     collision = True
@@ -479,7 +480,7 @@ class MainWindow(QMainWindow):
             if not collision:
                 self.shield_food = temp_food
                 self.scene.addItem(self.shield_food)
-                break
+                return
 
     def create_obstacle(self):
         # Create a new obstacle and place it randomly in the scene
@@ -516,9 +517,6 @@ class MainWindow(QMainWindow):
                 self.scene.addItem(obstacle)
                 return
 
-
-        self.obstacles.append(obstacle)
-        self.scene.addItem(obstacle)
        
         # If we couldn't find a valid position after max_attempts, don't create obstacle
         print(f"Warning: Could not find valid position for obstacle after {max_attempts} attempts")
@@ -731,6 +729,7 @@ class MainWindow(QMainWindow):
         self.scene.clear()  # Clear the entire scene to remove all items
         self.food = None  # Reset food
         self.level = 1  # Reset level
+        if hasattr(self, 'shield_timer'): self.shield_timer.stop()
 
 
         self.in_menu = True
