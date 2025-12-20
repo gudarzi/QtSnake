@@ -3,6 +3,14 @@ import os
 import random
 import sys
 
+# Set QT_PLUGIN_PATH for multimedia backends
+try:
+    import PySide6
+    plugins_path = os.path.join(os.path.dirname(PySide6.__file__), 'plugins')
+    os.environ['QT_PLUGIN_PATH'] = plugins_path
+except ImportError:
+    pass
+
 
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -229,6 +237,21 @@ class MainWindow(QMainWindow):
         self.lose_shield_sound = QSoundEffect()
         self.lose_shield_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "LoseShield.wav")))
         self.lose_shield_sound.setVolume(0.5)
+
+        # Gold Bonus
+        self.gold_bonus_sound = QSoundEffect()
+        self.gold_bonus_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "GoldBonus.wav")))
+        self.gold_bonus_sound.setVolume(0.5)
+
+        # Speed Up
+        self.speed_up_sound = QSoundEffect()
+        self.speed_up_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "SpeedUp.wav")))
+        self.speed_up_sound.setVolume(0.5)
+
+        # Slow Down
+        self.slow_down_sound = QSoundEffect()
+        self.slow_down_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "SlowDown.wav")))
+        self.slow_down_sound.setVolume(0.5)
         
 
         ui_file_path = "main.ui"
@@ -586,18 +609,20 @@ class MainWindow(QMainWindow):
         # Check collision with the food
         if head.collidesWithItem(self.food):
 
-            # Play corresponding sound effect
-            self.eat_sound.play()
-
             # Apply food effects based on type
             food_type = self.food.food_type
             self.snake.score += self.food.points  # Score updated based on food type
             self.food_count += 1  # Increment food count
            
+            # Play sound only for normal food
+            if food_type == "normal":
+                self.eat_sound.play()
+           
             # Handle special food effects
             if food_type == "golden":
                 # Show golden food message briefly
                 self.show_powerup_message("⭐ Golden Food! +3 Points! ⭐", "gold")
+                self.gold_bonus_sound.play()
             elif food_type == "speed_boost":
                 # Temporarily increase speed
                 current_speed = self.timer.interval()
@@ -605,6 +630,7 @@ class MainWindow(QMainWindow):
                 self.timer.setInterval(new_speed)
                 self.speed_boost_active = True
                 self.show_powerup_message("⚡ Speed Boost! Going Fast! ⚡", "cyan")
+                self.speed_up_sound.play()
                 # Reset speed after 5 seconds
                 QtCore.QTimer.singleShot(5000, self.reset_speed)
             elif food_type == "slow_down":
@@ -614,6 +640,7 @@ class MainWindow(QMainWindow):
                 self.timer.setInterval(new_speed)
                 self.speed_boost_active = True
                 self.show_powerup_message("🐌 Slow Motion! Take it Easy! 🐌", "purple")
+                self.slow_down_sound.play()
                 # Reset speed after 5 seconds
                 QtCore.QTimer.singleShot(5000, self.reset_speed)
            
