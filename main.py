@@ -3,6 +3,14 @@ import os
 import random
 import sys
 
+# Set QT_PLUGIN_PATH for multimedia backends
+try:
+    import PySide6
+    plugins_path = os.path.join(os.path.dirname(PySide6.__file__), 'plugins')
+    os.environ['QT_PLUGIN_PATH'] = plugins_path
+except ImportError:
+    pass
+
 
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
@@ -15,6 +23,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtUiTools import QUiLoader
 from PySide6 import QtCore, QtWidgets
+from PySide6.QtMultimedia import QSoundEffect
+from PySide6.QtCore import QUrl
 
 
 
@@ -203,6 +213,46 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Sound Effects
+
+        # Directory
+        sounds_dir = "SoundFX"
+
+        # Game Over
+        self.game_over_sound = QSoundEffect()
+        self.game_over_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "GameOver.wav")))
+        self.game_over_sound.setVolume(0.6)
+
+        # Eat
+        self.eat_sound = QSoundEffect()
+        self.eat_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "Eat.wav")))
+        self.eat_sound.setVolume(0.5)
+
+        # Gain Shield
+        self.shield_sound = QSoundEffect()
+        self.shield_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "Shield.wav")))
+        self.shield_sound.setVolume(0.5)
+        
+        # Lose Shield
+        self.lose_shield_sound = QSoundEffect()
+        self.lose_shield_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "LoseShield.wav")))
+        self.lose_shield_sound.setVolume(0.5)
+
+        # Gold Bonus
+        self.gold_bonus_sound = QSoundEffect()
+        self.gold_bonus_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "GoldBonus.wav")))
+        self.gold_bonus_sound.setVolume(0.5)
+
+        # Speed Up
+        self.speed_up_sound = QSoundEffect()
+        self.speed_up_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "SpeedUp.wav")))
+        self.speed_up_sound.setVolume(0.5)
+
+        # Slow Down
+        self.slow_down_sound = QSoundEffect()
+        self.slow_down_sound.setSource(QUrl.fromLocalFile(os.path.join(sounds_dir, "SlowDown.wav")))
+        self.slow_down_sound.setVolume(0.5)
+        
 
         ui_file_path = "main.ui"
         ui_file_abs_path = get_resource_path(ui_file_path)
@@ -541,6 +591,7 @@ class MainWindow(QMainWindow):
         # Check collision with boundaries using scene's bounding rectangle
         if not self.scene.sceneRect().contains(head.sceneBoundingRect()):
             if self.shields > 0 and not self.invincible:
+                self.lose_shield_sound.play()
                 self.shields -= 1
                 self.show_powerup_message(f"🛡️ Shield used! Remaining: {self.shields}", "purple")
                 self.start_invincibility(2000)  # 2 seconds i-frame
@@ -557,15 +608,21 @@ class MainWindow(QMainWindow):
 
         # Check collision with the food
         if head.collidesWithItem(self.food):
+
             # Apply food effects based on type
             food_type = self.food.food_type
             self.snake.score += self.food.points  # Score updated based on food type
             self.food_count += 1  # Increment food count
            
+            # Play sound only for normal food
+            if food_type == "normal":
+                self.eat_sound.play()
+           
             # Handle special food effects
             if food_type == "golden":
                 # Show golden food message briefly
                 self.show_powerup_message("⭐ Golden Food! +3 Points! ⭐", "gold")
+                self.gold_bonus_sound.play()
             elif food_type == "speed_boost":
                 # Temporarily increase speed
                 current_speed = self.timer.interval()
@@ -573,6 +630,7 @@ class MainWindow(QMainWindow):
                 self.timer.setInterval(new_speed)
                 self.speed_boost_active = True
                 self.show_powerup_message("⚡ Speed Boost! Going Fast! ⚡", "cyan")
+                self.speed_up_sound.play()
                 # Reset speed after 5 seconds
                 QtCore.QTimer.singleShot(5000, self.reset_speed)
             elif food_type == "slow_down":
@@ -582,6 +640,7 @@ class MainWindow(QMainWindow):
                 self.timer.setInterval(new_speed)
                 self.speed_boost_active = True
                 self.show_powerup_message("🐌 Slow Motion! Take it Easy! 🐌", "purple")
+                self.slow_down_sound.play()
                 # Reset speed after 5 seconds
                 QtCore.QTimer.singleShot(5000, self.reset_speed)
            
@@ -605,6 +664,7 @@ class MainWindow(QMainWindow):
         for obstacle in self.obstacles:
             if head.collidesWithItem(obstacle):
                 if self.shields > 0 and not self.invincible:
+                    self.lose_shield_sound.play()
                     self.shields -= 1
                     self.show_powerup_message(f"Shield used! Remaining: {self.shields}", "purple")
                     self.snake.set_color("green" if self.shields == 0 else "purple")
@@ -614,13 +674,23 @@ class MainWindow(QMainWindow):
                 return
 
         
-        # Check collision with shield food
-        if self.shield_food and head.collidesWithItem(self.shield_food):
-            self.shields += 1
-            self.snake.set_color("purple")  # Turn snake purple
-            self.show_powerup_message(f"You collected a shield! Total: {self.shields}", "purple")
-            self.scene.removeItem(self.shield_food)
-            self.shield_food = None
+        # Check collision with shield food (guard against C++ object already deleted)
+        if self.shield_food:
+            try:
+                if head.collidesWithItem(self.shield_food):
+                    self.shield_sound.play()
+                    self.shields += 1
+                    self.snake.set_color("purple")  # Turn snake purple
+                    self.show_powerup_message(f"You collected a shield! Total: {self.shields}", "purple")
+                    try:
+                        self.scene.removeItem(self.shield_food)
+                    except RuntimeError:
+                        pass
+                    self.shield_food = None
+            except RuntimeError:
+                # The underlying C++ QGraphicsItem was deleted elsewhere (e.g., scene.clear()).
+                # Drop the Python-side reference to avoid subsequent RuntimeErrors.
+                self.shield_food = None
 
 
 
@@ -694,7 +764,8 @@ class MainWindow(QMainWindow):
         msg1 = QMessageBox()
         msg1.setWindowTitle("Game Paused")
         msg1.setText(f"Level: {self.level}\nYour score: {self.snake.score}\n Do you want to continue?")
-        msg1.setIcon(QMessageBox.Information)
+        # Avoid system default notification sound by not setting a standard icon
+        msg1.setIcon(QMessageBox.NoIcon)
         continue_button = msg1.addButton("Continue", QMessageBox.ActionRole)
         abort_button = msg1.addButton("Quit", QMessageBox.RejectRole)
         msg1.exec()
@@ -706,6 +777,7 @@ class MainWindow(QMainWindow):
 
 
     def game_over(self):
+        self.game_over_sound.play()
         self.timer.stop()
        
         # Update high score
@@ -719,7 +791,8 @@ class MainWindow(QMainWindow):
         msg = QMessageBox()
         msg.setWindowTitle("Game Over")
         msg.setText(f"Level Reached: {self.level}\nYour Score: {self.snake.score}{high_score_text}")
-        msg.setIcon(QMessageBox.Information)
+        # Use NoIcon to prevent the system's default sound from playing when the dialog appears
+        msg.setIcon(QMessageBox.NoIcon)
         msg.exec()
 
 
