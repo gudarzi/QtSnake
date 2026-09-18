@@ -8,7 +8,7 @@
 ## Table of Contents
 1. [How to Run](#how-to-run)
 2. [How to Build to EXE](#how-to-build-to-exe)
-3. [Recently Added Features](#features)
+3. [Recently Added Features](#recently-added-features)
 4. [Issues](#issues)
 5. [How to Contribute](#how-to-contribute)
 6. [Disclaimer](#disclaimer)
@@ -55,4 +55,3 @@ If you're interested in contributing to QtSnake, check out [Issues](https://gith
 
 ## Disclaimer
 Please note that this project is intended for educational purposes and might not be suitable for production environments. The project is provided "as is", without warranty of any kind. In no event shall the authors or copyright holders be liable for any claim, damages or other liability arising from the use of this project.
-
